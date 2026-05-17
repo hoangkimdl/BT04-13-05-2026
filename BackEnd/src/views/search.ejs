@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shop</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a class="logo" href="/">MyShop</a>
+            <form id="search-form" action="/search" method="get" class="search-form">
+                <input name="q" id="q" placeholder="Tìm kiếm sản phẩm..." value="<%= (query && (query.q||query.name)) ? (query.q||query.name) : '' %>">
+                <button type="submit">Tìm</button>
+            </form>
+            <div id="user-area">
+                <form id="login-form" class="login-form">
+                    <input name="email" placeholder="email" required>
+                    <input name="password" type="password" placeholder="password" required>
+                    <button type="submit">Đăng nhập</button>
+                </form>
+                <div id="account-info" style="display:none">
+                    <span id="account-name"></span>
+                    <button id="logout">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+<main class="container">
+    <h2>Tìm kiếm</h2>
+    <form id="search-advanced" class="search-advanced" method="get" action="/search">
+        <input name="name" placeholder="Tên sản phẩm" value="<%= (query && (query.name||query.q)) ? (query.name||query.q) : '' %>">
+        <input name="category" placeholder="Danh mục" value="<%= query && query.category ? query.category : '' %>">
+        <input name="minPrice" placeholder="Giá từ" type="number" value="<%= query && query.minPrice ? query.minPrice : '' %>">
+        <input name="maxPrice" placeholder="Giá đến" type="number" value="<%= query && query.maxPrice ? query.maxPrice : '' %>">
+        <select name="sort">
+            <option value="">Sắp xếp</option>
+            <option value="price_asc" <%= query && query.sort==='price_asc' ? 'selected' : '' %>>Giá tăng dần</option>
+            <option value="price_desc" <%= query && query.sort==='price_desc' ? 'selected' : '' %>>Giá giảm dần</option>
+            <option value="bestseller" <%= query && query.sort==='bestseller' ? 'selected' : '' %>>Bán chạy</option>
+        </select>
+        <button type="submit">Lọc</button>
+    </form>
+
+    <% if (typeof items !== 'undefined') { %>
+        <% if (items.length === 0) { %>
+            <p>Không tìm thấy sản phẩm phù hợp.</p>
+        <% } else { %>
+            <div id="search-results" class="grid">
+                <% items.forEach(function(p){ %>
+                    <a class="card" href="/product/<%= p._id %>">
+                        <img src="<%= p.images && p.images[0] ? p.images[0] : '/images/product-a.svg' %>">
+                        <div class="card-body"><h4><%= p.name %></h4><div class="price"><%= p.price %> VND</div></div>
+                    </a>
+                <% }) %>
+            </div>
+        <% } %>
+    <% } %>
+</main>
+
+    <footer class="site-footer">
+        <div class="container">&copy; <%= new Date().getFullYear() %> MyShop</div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+        const loginForm = document.getElementById('login-form');
+        const accountInfo = document.getElementById('account-info');
+        const accountName = document.getElementById('account-name');
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(e){
+                e.preventDefault();
+                const fd = new FormData(loginForm);
+                const payload = { email: fd.get('email'), password: fd.get('password') };
+                try {
+                    const res = await fetch('/v1/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    const data = await res.json();
+                    if (data && data.access_token) {
+                        localStorage.setItem('access_token', data.access_token);
+                        localStorage.setItem('user_name', data.user && data.user.name ? data.user.name : payload.email);
+                        if (loginForm) loginForm.style.display = 'none';
+                        if (accountInfo) { accountInfo.style.display = 'block'; accountName.textContent = localStorage.getItem('user_name'); }
+                    } else {
+                        alert(data.EM || 'Đăng nhập thất bại');
+                    }
+                } catch (err) { alert('Lỗi đăng nhập'); }
+            });
+        }
+
+        const logoutBtn = document.getElementById('logout');
+        if (logoutBtn) logoutBtn.addEventListener('click', function(){
+            localStorage.removeItem('access_token'); localStorage.removeItem('user_name');
+            if (loginForm) loginForm.style.display = 'flex';
+            if (accountInfo) accountInfo.style.display = 'none';
+        });
+
+        if (localStorage.getItem('access_token')) {
+            if (loginForm) loginForm.style.display = 'none';
+            if (accountInfo) { accountInfo.style.display = 'block'; accountName.textContent = localStorage.getItem('user_name') || ''; }
+        }
+    });
+    </script>
+</body>
+</html>

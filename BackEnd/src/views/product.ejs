@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Shop</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.css" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a class="logo" href="/">MyShop</a>
+            <form id="search-form" action="/search" method="get" class="search-form">
+                <input name="q" id="q" placeholder="Tìm kiếm sản phẩm...">
+                <button type="submit">Tìm</button>
+            </form>
+            <div id="user-area">
+                <form id="login-form" class="login-form">
+                    <input name="email" placeholder="email" required>
+                    <input name="password" type="password" placeholder="password" required>
+                    <button type="submit">Đăng nhập</button>
+                </form>
+                <div id="account-info" style="display:none">
+                    <span id="account-name"></span>
+                    <button id="logout">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+<main class="container product-page">
+    <% if (!product) { %>
+        <h2>Sản phẩm không tìm thấy</h2>
+    <% } else { %>
+        <div class="product-detail">
+            <div class="product-gallery">
+                <div class="swiper mySwiper">
+                    <div class="swiper-wrapper">
+                        <% if (product.images && product.images.length>0) { %>
+                            <% product.images.forEach(function(img){ %>
+                                <div class="swiper-slide"><img src="<%= img %>" alt="<%= product.name %>"></div>
+                            <% }) %>
+                        <% } else { %>
+                            <div class="swiper-slide"><img src="/images/product-a.svg"></div>
+                        <% } %>
+                    </div>
+                    <div class="swiper-pagination"></div>
+                    <div class="swiper-button-next"></div>
+                    <div class="swiper-button-prev"></div>
+                </div>
+            </div>
+            <div class="product-info">
+                <h1><%= product.name %></h1>
+                <p class="price"><%= product.price %> VND</p>
+                <p>Danh mục: <%= product.category %></p>
+                <p>Tồn kho: <%= product.stock %></p>
+                <p>Đã bán: <%= product.sold %></p>
+                <div class="qty">
+                    <button id="qty-decrease">-</button>
+                    <input id="qty" type="number" value="1" min="1" max="<%= product.stock %>">
+                    <button id="qty-increase">+</button>
+                </div>
+                <div class="actions">
+                    <button id="add-to-cart">Thêm vào giỏ</button>
+                </div>
+                <div class="description"><%= product.description %></div>
+            </div>
+        </div>
+
+        <section>
+            <h3>Sản phẩm tương tự</h3>
+            <div class="grid">
+                        <% similar.forEach(function(p){ %>
+                    <a class="card" href="/product/<%= p._id %>">
+                        <img src="<%= p.images && p.images[0] ? p.images[0] : '/images/product-a.svg' %>">
+                        <div class="card-body"><h4><%= p.name %></h4></div>
+                    </a>
+                <% }) %>
+            </div>
+        </section>
+    <% } %>
+</main>
+
+    <footer class="site-footer">
+        <div class="container">&copy; <%= new Date().getFullYear() %> MyShop</div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/swiper@9/swiper-bundle.min.js"></script>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function(){
+        const loginForm = document.getElementById('login-form');
+        const accountInfo = document.getElementById('account-info');
+        const accountName = document.getElementById('account-name');
+
+        if (loginForm) {
+            loginForm.addEventListener('submit', async function(e){
+                e.preventDefault();
+                const fd = new FormData(loginForm);
+                const payload = { email: fd.get('email'), password: fd.get('password') };
+                try {
+                    const res = await fetch('/v1/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    const data = await res.json();
+                    if (data && data.access_token) {
+                        localStorage.setItem('access_token', data.access_token);
+                        localStorage.setItem('user_name', data.user && data.user.name ? data.user.name : payload.email);
+                        if (loginForm) loginForm.style.display = 'none';
+                        if (accountInfo) { accountInfo.style.display = 'block'; accountName.textContent = localStorage.getItem('user_name'); }
+                    } else {
+                        alert(data.EM || 'Đăng nhập thất bại');
+                    }
+                } catch (err) { alert('Lỗi đăng nhập'); }
+            });
+        }
+
+        const logoutBtn = document.getElementById('logout');
+        if (logoutBtn) logoutBtn.addEventListener('click', function(){
+            localStorage.removeItem('access_token'); localStorage.removeItem('user_name');
+            if (loginForm) loginForm.style.display = 'flex';
+            if (accountInfo) accountInfo.style.display = 'none';
+        });
+
+        if (localStorage.getItem('access_token')) {
+            if (loginForm) loginForm.style.display = 'none';
+            if (accountInfo) { accountInfo.style.display = 'block'; accountName.textContent = localStorage.getItem('user_name') || ''; }
+        }
+    });
+    </script>
+</body>
+</html>
