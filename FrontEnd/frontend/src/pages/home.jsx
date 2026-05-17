@@ -1,7 +1,14 @@
 import { ArrowRightOutlined, FireOutlined, StarOutlined } from '@ant-design/icons';
 import { Card, Col, Row, Tag, Typography } from 'antd';
 import { Link } from 'react-router-dom';
-import { brands, fallbackProducts, formatPrice, getProductKey, getProductsByBrand } from '../data/products';
+import {
+    brands,
+    fallbackProducts,
+    formatPrice,
+    getProductKey,
+    getProductsByBrand,
+    getSoldText,
+} from '../data/products';
 
 const { Title } = Typography;
 
@@ -10,16 +17,22 @@ const ProductCard = ({ p }) => (
         <Card hoverable className="product-card" bodyStyle={{ padding: 14 }}>
             <div className="product-card__image">
                 <img alt={p.name} src={p.thumbnail || p.images?.[0] || '/logo.jpg'} />
-                {p.isOnSale ? <span className="product-card__badge">Sale</span> : null}
+                {p.discountPercent ? <span className="product-card__badge">-{p.discountPercent}%</span> : null}
             </div>
             <div className="product-card__body">
                 <div className="product-card__brand">{p.brand}</div>
                 <Card.Meta
                     title={p.name}
                     description={
-                        <div className="product-card__meta">
-                            <b>{formatPrice(p.price)}</b>
-                            {p.isNew ? <Tag color="blue">Mới</Tag> : null}
+                        <div className="product-card__footer">
+                            <div className="product-price-stack">
+                                <b>{formatPrice(p.price)}</b>
+                                <del>{formatPrice(p.originalPrice || p.price)}</del>
+                            </div>
+                            <div className="product-card__bottom">
+                                <span>{getSoldText(p.sold)}</span>
+                                {p.isNew ? <Tag color="blue">Mới</Tag> : null}
+                            </div>
                         </div>
                     }
                 />

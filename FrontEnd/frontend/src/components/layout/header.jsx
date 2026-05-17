@@ -1,5 +1,5 @@
 import { HomeOutlined, SearchOutlined, SettingOutlined, ShoppingCartOutlined, UsergroupAddOutlined } from '@ant-design/icons';
-import { Col, Input, Menu, Row } from 'antd';
+import { Col, Menu, Row } from 'antd';
 import { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/auth.context';
@@ -8,7 +8,6 @@ const Header = () => {
     const navigate = useNavigate();
     const { auth, setAuth } = useContext(AuthContext);
     const [current, setCurrent] = useState('home');
-    const { Search } = Input;
 
     const items = [
         {
@@ -70,23 +69,13 @@ const Header = () => {
     return (
         <header className="site-header">
             <Row align="middle" gutter={[16, 12]} className="site-header__inner">
-                <Col flex="188px">
+                <Col flex="260px">
                     <Link className="site-logo" to="/">
                         <img src="/logo.jpg" alt="Speedstride Sports" />
                         <span>Speedstride</span>
                     </Link>
                 </Col>
-                <Col flex="auto">
-                    <Search
-                        placeholder="Tìm kiếm Kawasaki, Yonex, Lining, Victor..."
-                        onSearch={(value) => {
-                            navigate(value ? `/search?name=${encodeURIComponent(value)}` : '/search');
-                        }}
-                        enterButton
-                        allowClear
-                    />
-                </Col>
-                <Col>
+                <Col flex="auto" className="site-menu-wrap">
                     <Menu onClick={(event) => setCurrent(event.key)} selectedKeys={[current]} mode="horizontal" items={items} />
                 </Col>
             </Row>

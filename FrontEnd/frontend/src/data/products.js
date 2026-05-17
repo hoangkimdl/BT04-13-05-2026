@@ -55,11 +55,18 @@ const unavailableByBrand = {
     Victor: [43],
 };
 
+const discounts = [28, 24, 20, 18, 15, 22, 12];
+
+const getOriginalPrice = (salePrice, discountPercent) =>
+    Math.ceil((salePrice / (1 - discountPercent / 100)) / 10000) * 10000;
+
 const createBrandProducts = (brand) =>
     brandImages[brand].map((image, index) => {
         const number = String(index + 1).padStart(2, '0');
         const meta = brandMeta[brand];
         const images = [image, ...brandImages[brand].filter((item) => item !== image)];
+        const discountPercent = discounts[index % discounts.length];
+        const salePrice = meta.price + index * 70000;
 
         return {
             id: `${brand.toLowerCase()}-anh-${number}`,
@@ -67,11 +74,13 @@ const createBrandProducts = (brand) =>
             name: `${meta.title} mẫu ${number} ${meta.accent}`,
             brand,
             category: 'Giày cầu lông',
-            price: meta.price + index * 70000,
+            price: salePrice,
+            originalPrice: getOriginalPrice(salePrice, discountPercent),
+            discountPercent,
             stock: 8 + index,
             sold: 80 - index * 4,
             isNew: index < 2,
-            isOnSale: index % 2 === 0,
+            isOnSale: true,
             sizes: sizesByBrand[brand],
             unavailableSizes: unavailableByBrand[brand],
             images,
@@ -98,6 +107,17 @@ export const findLocalProduct = (id) =>
 
 export const getProductsByBrand = (brand) =>
     fallbackProducts.filter((product) => product.brand.toLowerCase() === brand.toLowerCase());
+
+export const getRelatedProducts = (product, limit = 8) => {
+    if (!product?.brand) return fallbackProducts.slice(0, limit);
+
+    const productKey = getProductKey(product);
+    return getProductsByBrand(product.brand)
+        .filter((item) => getProductKey(item) !== productKey)
+        .slice(0, limit);
+};
+
+export const getSoldText = (sold = 0) => `Đã bán ${sold}`;
 
 export const searchLocalProducts = ({ name = '', brand = '', sort = '' } = {}) => {
     const normalizedName = name.trim().toLowerCase();

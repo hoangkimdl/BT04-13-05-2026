@@ -1,8 +1,25 @@
-import { EnvironmentOutlined, MinusOutlined, PlusOutlined, ShoppingCartOutlined } from '@ant-design/icons';
-import { Button, Divider, InputNumber, Spin, Tag, message } from 'antd';
+import {
+    CheckCircleOutlined,
+    EnvironmentOutlined,
+    FireOutlined,
+    MinusOutlined,
+    PlusOutlined,
+    SafetyCertificateOutlined,
+    ShoppingCartOutlined,
+    ThunderboltOutlined,
+} from '@ant-design/icons';
+import { Button, Col, InputNumber, Row, Spin, Tag, message } from 'antd';
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { fallbackProducts, findLocalProduct, formatPrice, getProductKey } from '../data/products';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import {
+    fallbackProducts,
+    findLocalProduct,
+    formatPrice,
+    getProductKey,
+    getProductsByBrand,
+    getRelatedProducts,
+    getSoldText,
+} from '../data/products';
 import axios from '../util/axios.customize';
 
 const getBrandFromProduct = (product) => {
@@ -14,6 +31,24 @@ const getBrandFromProduct = (product) => {
 
 const getFirstAvailableSize = (product) =>
     product?.sizes?.find((size) => !product.unavailableSizes?.includes(size)) || product?.sizes?.[0] || null;
+
+const RelatedProductCard = ({ product }) => (
+    <Link className="related-card" to={`/product/${getProductKey(product)}`}>
+        <div className="related-card__image">
+            <img src={product.thumbnail || product.images?.[0] || '/logo.jpg'} alt={product.name} />
+            {product.discountPercent ? <span>-{product.discountPercent}%</span> : null}
+        </div>
+        <div className="related-card__body">
+            <small>{product.brand}</small>
+            <h3>{product.name}</h3>
+            <div className="related-card__price">
+                <strong>{formatPrice(product.price)}</strong>
+                <del>{formatPrice(product.originalPrice || product.price)}</del>
+            </div>
+            <p>{getSoldText(product.sold)}</p>
+        </div>
+    </Link>
+);
 
 const ProductDetail = () => {
     const { id } = useParams();
@@ -39,16 +74,12 @@ const ProductDetail = () => {
 
             try {
                 const apiProduct = await axios.get(`/v1/api/products/${id}`);
-                const nextProduct = apiProduct?._id
-                    ? { ...localProduct, ...apiProduct, images: apiProduct.images?.length ? apiProduct.images : localProduct?.images }
-                    : localProduct;
-                setProduct(nextProduct || null);
-                setSelectedSize(getFirstAvailableSize(nextProduct));
+                setProduct(apiProduct || null);
+                setSelectedSize(getFirstAvailableSize(apiProduct));
             } catch (error) {
                 console.error(error);
-                const localProduct = findLocalProduct(id) || null;
-                setProduct(localProduct);
-                setSelectedSize(getFirstAvailableSize(localProduct));
+                setProduct(null);
+                setSelectedSize(null);
             } finally {
                 setLoading(false);
                 setActiveImage(0);
@@ -59,6 +90,7 @@ const ProductDetail = () => {
     }, [id]);
 
     const images = useMemo(() => product?.images?.length ? product.images : ['/logo.jpg'], [product]);
+    const relatedProducts = useMemo(() => getRelatedProducts(product, 8), [product]);
 
     const addToCart = async (goToCart = false) => {
         if (!product) return;
@@ -78,7 +110,7 @@ const ProductDetail = () => {
                 ? currentCart.map((item) => item === existingItem ? { ...item, qty: item.qty + qty } : item)
                 : [...currentCart, { productId, qty, size: selectedSize }];
             localStorage.setItem('local_cart', JSON.stringify(nextCart));
-            message.success('Đã thêm sản phẩm mẫu vào giỏ hàng');
+            message.success('Đã thêm sản phẩm vào giỏ hàng');
             if (goToCart) navigate('/cart');
             return;
         }
@@ -112,72 +144,113 @@ const ProductDetail = () => {
 
     const unavailableSizes = product.unavailableSizes || [];
     const brand = getBrandFromProduct(product);
+    const isLocalProduct = fallbackProducts.some((item) => getProductKey(item) === getProductKey(product));
+    const productChoices = isLocalProduct ? getProductsByBrand(brand) : [];
+    const mainImage = isLocalProduct ? (product.thumbnail || images[0]) : images[activeImage];
+    const discountPercent = product.discountPercent || product.discount || 0;
+    const originalPrice = product.originalPrice || product.price;
 
     return (
-        <main className="product-detail-page">
-            <section className="product-detail-layout">
+        <main className="product-detail-page detail-redesign">
+            <section className="product-detail-shell">
                 <div className="product-gallery">
                     <div className="product-gallery__main">
-                        <img src={images[activeImage]} alt={product.name} />
+                        {discountPercent ? <span className="detail-sale-ribbon">-{discountPercent}%</span> : null}
+                        <img src={mainImage} alt={product.name} />
                     </div>
-                    <div className="product-gallery__dots">
-                        {images.map((image, index) => (
-                            <button
-                                key={image}
-                                className={index === activeImage ? 'active' : ''}
-                                type="button"
-                                aria-label={`Ảnh ${index + 1}`}
-                                onClick={() => setActiveImage(index)}
-                            />
-                        ))}
-                    </div>
-                    <div className="product-gallery__thumbs">
-                        {images.map((image, index) => (
-                            <button
-                                key={image}
-                                className={index === activeImage ? 'active' : ''}
-                                type="button"
-                                onClick={() => setActiveImage(index)}
-                            >
-                                <img src={image} alt={`${product.name} ${index + 1}`} />
-                            </button>
-                        ))}
+                    <div className="product-gallery__thumbs product-gallery__product-thumbs">
+                        {isLocalProduct
+                            ? productChoices.map((choice) => {
+                                const choiceKey = getProductKey(choice);
+                                const active = choiceKey === getProductKey(product);
+                                return (
+                                    <button
+                                        key={choiceKey}
+                                        className={active ? 'active' : ''}
+                                        type="button"
+                                        aria-label={choice.name}
+                                        onClick={() => navigate(`/product/${choiceKey}`)}
+                                    >
+                                        <img src={choice.thumbnail || choice.images?.[0]} alt={choice.name} />
+                                        <span>{formatPrice(choice.price)}</span>
+                                    </button>
+                                );
+                            })
+                            : images.map((image, index) => (
+                                <button
+                                    key={image}
+                                    className={index === activeImage ? 'active' : ''}
+                                    type="button"
+                                    aria-label={`Ảnh ${index + 1}`}
+                                    onClick={() => setActiveImage(index)}
+                                >
+                                    <img src={image} alt={`${product.name} ${index + 1}`} />
+                                </button>
+                            ))}
                     </div>
                 </div>
 
                 <div className="product-buybox">
-                    <h1>{product.name}</h1>
-                    <Divider />
-                    <div className="status-row">
-                        <span>Tình trạng:</span>
-                        <strong>{product.stock > 0 ? 'Còn hàng' : 'Hết hàng'}</strong>
+                    <div className="product-kicker">
+                        <Tag color="blue">{brand}</Tag>
+                        {discountPercent ? <Tag color="red">Sale {discountPercent}%</Tag> : null}
+                        <Tag color="gold">{getSoldText(product.sold)}</Tag>
                     </div>
-                    <ul className="product-facts">
-                        <li><span>Thương hiệu:</span><b>{brand}</b></li>
-                        <li><span>Danh mục:</span><b>{product.category || 'Giày cầu lông'}</b></li>
-                    </ul>
 
-                    <div className="price-row">
-                        <span>Giá bán:</span>
-                        <strong>{formatPrice(product.price)}</strong>
+                    <h1>{product.name}</h1>
+
+                    <div className="product-benefits">
+                        <span><CheckCircleOutlined /> Còn hàng</span>
+                        <span><SafetyCertificateOutlined /> Chính hãng</span>
+                        <span><ThunderboltOutlined /> Giao nhanh</span>
+                    </div>
+
+                    <div className="price-panel">
+                        <div>
+                            <span className="price-label">Giá sale</span>
+                            <strong>{formatPrice(product.price)}</strong>
+                        </div>
+                        <div className="price-side">
+                            <span>Giá gốc</span>
+                            <del>{formatPrice(originalPrice)}</del>
+                            {discountPercent ? <b>Giảm {discountPercent}%</b> : null}
+                        </div>
+                    </div>
+
+                    <div className="info-grid">
+                        <div>
+                            <span>Tình trạng</span>
+                            <b>{product.stock > 0 ? 'Còn hàng' : 'Hết hàng'}</b>
+                        </div>
+                        <div>
+                            <span>Đã bán</span>
+                            <b>{product.sold}</b>
+                        </div>
+                        <div>
+                            <span>Danh mục</span>
+                            <b>{product.category || 'Giày cầu lông'}</b>
+                        </div>
                     </div>
 
                     {product.sizes?.length ? (
-                        <div className="size-row">
-                            {product.sizes.map((size) => {
-                                const disabled = unavailableSizes.includes(size);
-                                return (
-                                    <button
-                                        key={size}
-                                        type="button"
-                                        disabled={disabled}
-                                        className={selectedSize === size ? 'selected' : ''}
-                                        onClick={() => setSelectedSize(size)}
-                                    >
-                                        {size}
-                                    </button>
-                                );
-                            })}
+                        <div className="option-block">
+                            <div className="option-title">Chọn size</div>
+                            <div className="size-row">
+                                {product.sizes.map((size) => {
+                                    const disabled = unavailableSizes.includes(size);
+                                    return (
+                                        <button
+                                            key={size}
+                                            type="button"
+                                            disabled={disabled}
+                                            className={selectedSize === size ? 'selected' : ''}
+                                            onClick={() => setSelectedSize(size)}
+                                        >
+                                            {size}
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
                     ) : null}
 
@@ -190,7 +263,7 @@ const ProductDetail = () => {
                             </div>
                         </div>
                         <div className="action-stack">
-                            <Button className="buy-now-btn" type="primary" size="large" onClick={() => addToCart(true)}>
+                            <Button className="buy-now-btn" type="primary" size="large" icon={<FireOutlined />} onClick={() => addToCart(true)}>
                                 Mua ngay
                             </Button>
                             <Button className="add-cart-btn" size="large" icon={<ShoppingCartOutlined />} onClick={() => addToCart(false)}>
@@ -199,22 +272,35 @@ const ProductDetail = () => {
                         </div>
                     </div>
 
-                    <Divider dashed />
-                    <a className="store-title" href="#stores">Danh sách cửa hàng có sản phẩm:</a>
                     <div id="stores" className="store-box">
                         <EnvironmentOutlined />
                         <div>
+                            <span>Danh sách cửa hàng có sẵn sản phẩm</span>
                             <b>Phú Nhuận</b>
                             <p>+84363315527 - 184B Lê Văn Sỹ P10 Q.Phú Nhuận</p>
                         </div>
                     </div>
 
                     <div className="description-box">
-                        <Tag color="blue">Chính hãng</Tag>
-                        <Tag color="green">Bảo hành</Tag>
+                        <Tag color="blue">Bảo hành</Tag>
+                        <Tag color="green">Đổi trả linh hoạt</Tag>
                         <p>{product.description}</p>
                     </div>
                 </div>
+            </section>
+
+            <section className="related-section">
+                <div className="section-heading">
+                    <h2>Sản phẩm tương tự</h2>
+                    <Link to={`/search?brand=${encodeURIComponent(brand)}`}>Xem thêm {brand}</Link>
+                </div>
+                <Row gutter={[16, 16]}>
+                    {relatedProducts.map((item) => (
+                        <Col key={getProductKey(item)} xs={24} sm={12} md={8} lg={6}>
+                            <RelatedProductCard product={item} />
+                        </Col>
+                    ))}
+                </Row>
             </section>
         </main>
     );

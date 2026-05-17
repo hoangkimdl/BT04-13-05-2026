@@ -1,7 +1,14 @@
 import { Card, Col, Empty, Input, Row, Select, Typography } from 'antd';
 import { useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { brands, fallbackProducts, formatPrice, getProductKey, searchLocalProducts } from '../data/products';
+import {
+    brands,
+    fallbackProducts,
+    formatPrice,
+    getProductKey,
+    getSoldText,
+    searchLocalProducts,
+} from '../data/products';
 
 const { Title } = Typography;
 
@@ -10,11 +17,24 @@ const ProductResultCard = ({ product }) => (
         <Card hoverable className="product-card search-card" bodyStyle={{ padding: 14 }}>
             <div className="product-card__image">
                 <img alt={product.name} src={product.thumbnail || product.images?.[0] || '/logo.jpg'} />
-                {product.isOnSale ? <span className="product-card__badge">Sale</span> : null}
+                {product.discountPercent ? <span className="product-card__badge">-{product.discountPercent}%</span> : null}
             </div>
             <div className="product-card__body">
                 <div className="product-card__brand">{product.brand}</div>
-                <Card.Meta title={product.name} description={<b>{formatPrice(product.price)}</b>} />
+                <Card.Meta
+                    title={product.name}
+                    description={
+                        <div className="product-card__footer">
+                            <div className="product-price-stack">
+                                <b>{formatPrice(product.price)}</b>
+                                <del>{formatPrice(product.originalPrice || product.price)}</del>
+                            </div>
+                            <div className="product-card__bottom">
+                                <span>{getSoldText(product.sold)}</span>
+                            </div>
+                        </div>
+                    }
+                />
             </div>
         </Card>
     </Link>
