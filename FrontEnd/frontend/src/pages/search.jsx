@@ -1,5 +1,5 @@
-import { Card, Col, Empty, Input, Row, Select, Typography } from 'antd';
-import { useMemo } from 'react';
+import { Card, Col, Empty, Input, Row, Select, Spin, Typography } from 'antd';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
     brands,
@@ -9,6 +9,7 @@ import {
     getSoldText,
     searchLocalProducts,
 } from '../data/products';
+import axios from '../util/axios.customize';
 
 const { Title } = Typography;
 
@@ -42,6 +43,8 @@ const ProductResultCard = ({ product }) => (
 
 const SearchPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
+    const [items, setItems] = useState(fallbackProducts);
+    const [loading, setLoading] = useState(false);
 
     const filters = useMemo(() => ({
         name: searchParams.get('name') || searchParams.get('q') || '',
@@ -49,7 +52,27 @@ const SearchPage = () => {
         sort: searchParams.get('sort') || '',
     }), [searchParams]);
 
-    const items = useMemo(() => searchLocalProducts(filters), [filters]);
+    useEffect(() => {
+        const loadProducts = async () => {
+            setLoading(true);
+            try {
+                const params = new URLSearchParams({ limit: '100' });
+                if (filters.name) params.set('name', filters.name);
+                if (filters.brand) params.set('brand', filters.brand);
+                if (filters.sort) params.set('sort', filters.sort);
+
+                const result = await axios.get(`/v1/api/products?${params.toString()}`);
+                setItems(result?.items?.length ? result.items : []);
+            } catch (error) {
+                console.error(error);
+                setItems(searchLocalProducts(filters));
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        loadProducts();
+    }, [filters]);
 
     const updateFilter = (key, value) => {
         const next = new URLSearchParams(searchParams);
@@ -63,9 +86,9 @@ const SearchPage = () => {
             <div className="search-hero">
                 <img src="/logo.jpg" alt="Speedstride Sports" />
                 <div>
-                    <span>{fallbackProducts.length} sản phẩm local</span>
+                    <span>{items.length} sản phẩm</span>
                     <Title level={2}>Tìm kiếm sản phẩm</Title>
-                    <p>Lọc nhanh toàn bộ ảnh Kawasaki, Yonex, Lining và Victor.</p>
+                    <p>Lọc nhanh toàn bộ ảnh Kawasaki, Yonex, Lining và Victor từ dữ liệu MongoDB.</p>
                 </div>
             </div>
 
@@ -98,7 +121,11 @@ const SearchPage = () => {
                 />
             </div>
 
-            {items.length ? (
+            {loading ? (
+                <div className="empty-state">
+                    <Spin />
+                </div>
+            ) : items.length ? (
                 <Row gutter={[16, 16]}>
                     {items.map((product) => (
                         <Col key={getProductKey(product)} xs={24} sm={12} md={8} lg={6}>

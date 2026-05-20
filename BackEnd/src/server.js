@@ -6,6 +6,7 @@ const connection = require('./config/database');
 const { getHomepage } = require('./controllers/homeController');
 const { getProductPage, searchPage } = require('./controllers/productController');
 const cors = require('cors');
+const { seedProductsIfEmpty } = require('./data/seedProducts');
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -22,6 +23,7 @@ app.use('/v1/api', apiRouters);
 (async () => {
     try {
         await connection();
+        await seedProductsIfEmpty();
         app.listen(PORT, () => {
             console.log(`Backend Nodejs App listening on port ${PORT}`);
         })

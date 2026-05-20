@@ -58,6 +58,7 @@ const ProductDetail = () => {
     const [activeImage, setActiveImage] = useState(0);
     const [qty, setQty] = useState(1);
     const [selectedSize, setSelectedSize] = useState(null);
+    const [productChoices, setProductChoices] = useState([]);
 
     useEffect(() => {
         const load = async () => {
@@ -65,6 +66,7 @@ const ProductDetail = () => {
             const localProduct = findLocalProduct(id);
             if (localProduct) {
                 setProduct(localProduct);
+                setProductChoices(getProductsByBrand(localProduct.brand));
                 setSelectedSize(getFirstAvailableSize(localProduct));
                 setLoading(false);
                 setActiveImage(0);
@@ -76,9 +78,21 @@ const ProductDetail = () => {
                 const apiProduct = await axios.get(`/v1/api/products/${id}`);
                 setProduct(apiProduct || null);
                 setSelectedSize(getFirstAvailableSize(apiProduct));
+
+                if (apiProduct?.brand) {
+                    const params = new URLSearchParams({
+                        brand: apiProduct.brand,
+                        limit: '30',
+                    });
+                    const brandProducts = await axios.get(`/v1/api/products?${params.toString()}`);
+                    setProductChoices(brandProducts?.items?.length ? brandProducts.items : [apiProduct]);
+                } else {
+                    setProductChoices(apiProduct ? [apiProduct] : []);
+                }
             } catch (error) {
                 console.error(error);
                 setProduct(null);
+                setProductChoices([]);
                 setSelectedSize(null);
             } finally {
                 setLoading(false);
@@ -91,6 +105,18 @@ const ProductDetail = () => {
 
     const images = useMemo(() => product?.images?.length ? product.images : ['/logo.jpg'], [product]);
     const relatedProducts = useMemo(() => getRelatedProducts(product, 8), [product]);
+
+    const selectProductChoice = (choice) => {
+        if (!choice || getProductKey(choice) === getProductKey(product)) return;
+
+        setProduct(choice);
+        setActiveImage(0);
+        setSelectedSize(getFirstAvailableSize(choice));
+        setQty(1);
+
+        const choiceKey = getProductKey(choice);
+        window.history.replaceState(null, '', `/product/${choiceKey}`);
+    };
 
     const addToCart = async (goToCart = false) => {
         if (!product) return;
@@ -144,9 +170,8 @@ const ProductDetail = () => {
 
     const unavailableSizes = product.unavailableSizes || [];
     const brand = getBrandFromProduct(product);
-    const isLocalProduct = fallbackProducts.some((item) => getProductKey(item) === getProductKey(product));
-    const productChoices = isLocalProduct ? getProductsByBrand(brand) : [];
-    const mainImage = isLocalProduct ? (product.thumbnail || images[0]) : images[activeImage];
+    const choiceList = productChoices.length ? productChoices : [product];
+    const mainImage = product.thumbnail || images[activeImage];
     const discountPercent = product.discountPercent || product.discount || 0;
     const originalPrice = product.originalPrice || product.price;
 
@@ -159,8 +184,8 @@ const ProductDetail = () => {
                         <img src={mainImage} alt={product.name} />
                     </div>
                     <div className="product-gallery__thumbs product-gallery__product-thumbs">
-                        {isLocalProduct
-                            ? productChoices.map((choice) => {
+                        {choiceList.length > 1
+                            ? choiceList.map((choice) => {
                                 const choiceKey = getProductKey(choice);
                                 const active = choiceKey === getProductKey(product);
                                 return (
@@ -169,7 +194,7 @@ const ProductDetail = () => {
                                         className={active ? 'active' : ''}
                                         type="button"
                                         aria-label={choice.name}
-                                        onClick={() => navigate(`/product/${choiceKey}`)}
+                                        onClick={() => selectProductChoice(choice)}
                                     >
                                         <img src={choice.thumbnail || choice.images?.[0]} alt={choice.name} />
                                         <span>{formatPrice(choice.price)}</span>

@@ -28,6 +28,10 @@ import LoginPage from './pages/login.jsx';
 import ProductDetail from './pages/productDetail.jsx';
 import SearchPage from './pages/search.jsx';
 import CartPage from './pages/cart.jsx';
+import ForgotPasswordPage from './pages/forgotPassword.jsx';
+import ArticlesPage from './pages/articles.jsx';
+import ArticleDetailPage from './pages/articleDetail.jsx';
+import CategoryProductsPage from './pages/categoryProducts.jsx';
 import { AuthWrapper } from './components/context/auth.context.jsx';
 
 const router = createBrowserRouter([
@@ -52,8 +56,20 @@ const router = createBrowserRouter([
                     element: <SearchPage />
                 },
                 {
+                    path: "danh-muc/:category",
+                    element: <CategoryProductsPage />
+                },
+                {
                     path: "cart",
                     element: <CartPage />
+                },
+                {
+                    path: "tin-tuc",
+                    element: <ArticlesPage />
+                },
+                {
+                    path: "tin-tuc/:slug",
+                    element: <ArticleDetailPage />
                 },
         ]
     },
@@ -64,6 +80,10 @@ const router = createBrowserRouter([
     {
         path: "login",
         element: <LoginPage />
+    },
+    {
+        path: "forgot-password",
+        element: <ForgotPasswordPage />
     },
 ]);
 

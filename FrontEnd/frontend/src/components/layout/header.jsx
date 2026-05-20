@@ -1,4 +1,11 @@
-import { HomeOutlined, SearchOutlined, SettingOutlined, ShoppingCartOutlined, UsergroupAddOutlined } from '@ant-design/icons';
+import {
+    FileTextOutlined,
+    HomeOutlined,
+    SearchOutlined,
+    SettingOutlined,
+    ShoppingCartOutlined,
+    UsergroupAddOutlined,
+} from '@ant-design/icons';
 import { Col, Menu, Row } from 'antd';
 import { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -19,6 +26,11 @@ const Header = () => {
             label: <Link to="/search">Sản phẩm</Link>,
             key: 'search',
             icon: <SearchOutlined />,
+        },
+        {
+            label: <Link to="/tin-tuc">Tin tức</Link>,
+            key: 'articles',
+            icon: <FileTextOutlined />,
         },
         {
             label: <Link to="/cart">Giỏ hàng</Link>,
