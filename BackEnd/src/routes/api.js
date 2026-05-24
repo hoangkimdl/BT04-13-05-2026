@@ -18,6 +18,7 @@ const {
 const auth = require('../middleware/auth');
 const delay = require('../middleware/delay');
 const { getCart, addCartItem, setCartItem, removeCartItem, checkout } = require('../controllers/cartController');
+const { getMyOrders, getOrderDetail, cancelOrder, updateOrderStatus } = require('../controllers/orderController');
 const routerAPI = express.Router();
 routerAPI.use(delay);
 routerAPI.get("/", (req, res) => {
@@ -41,4 +42,8 @@ routerAPI.post('/cart/items', auth, addCartItem); // body: { productId, qty }
 routerAPI.put('/cart/items/:productId', auth, setCartItem); // body: { qty }
 routerAPI.delete('/cart/items/:productId', auth, removeCartItem);
 routerAPI.post('/cart/checkout', auth, checkout);
+routerAPI.get('/orders', auth, getMyOrders);
+routerAPI.get('/orders/:id', auth, getOrderDetail);
+routerAPI.post('/orders/:id/cancel', auth, cancelOrder);
+routerAPI.put('/orders/:id/status', auth, updateOrderStatus);
 module.exports = routerAPI;

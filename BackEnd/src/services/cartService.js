@@ -1,6 +1,8 @@
 const Cart = require('../models/cart');
 const Product = require('../models/product');
 
+const getItemProductId = (item) => String(item.product?._id || item.product);
+
 const getCartByEmail = async (email) => {
     try {
         let cart = await Cart.findOne({ userEmail: email }).populate('items.product');
@@ -14,20 +16,20 @@ const getCartByEmail = async (email) => {
     }
 }
 
-const addItem = async (email, productId, qty = 1) => {
+const addItem = async (email, productId, qty = 1, size = null) => {
     try {
         const product = await Product.findById(productId);
         if (!product) return { EC: 1, EM: 'Product not found' };
         if (product.stock <= 0) return { EC: 2, EM: 'Product out of stock' };
         const cart = await getCartByEmail(email);
-        const idx = cart.items.findIndex(i => i.product.toString() === productId.toString());
+        const idx = cart.items.findIndex(i => getItemProductId(i) === productId.toString() && String(i.size || '') === String(size || ''));
         if (idx >= 0) {
             const newQty = cart.items[idx].qty + Number(qty);
             if (newQty > product.stock) return { EC: 3, EM: 'Not enough stock' };
             cart.items[idx].qty = newQty;
         } else {
             if (qty > product.stock) return { EC: 3, EM: 'Not enough stock' };
-            cart.items.push({ product: productId, qty: Number(qty) });
+            cart.items.push({ product: productId, qty: Number(qty), size });
         }
         cart.updatedAt = new Date();
         await cart.save();
@@ -38,18 +40,18 @@ const addItem = async (email, productId, qty = 1) => {
     }
 }
 
-const setItemQty = async (email, productId, qty) => {
+const setItemQty = async (email, productId, qty, size = null) => {
     try {
         const product = await Product.findById(productId);
         if (!product) return { EC: 1, EM: 'Product not found' };
         const cart = await getCartByEmail(email);
-        const idx = cart.items.findIndex(i => i.product.toString() === productId.toString());
+        const idx = cart.items.findIndex(i => getItemProductId(i) === productId.toString() && String(i.size || '') === String(size || ''));
         if (qty <= 0) {
             if (idx >= 0) cart.items.splice(idx, 1);
         } else {
             if (qty > product.stock) return { EC: 3, EM: 'Not enough stock' };
             if (idx >= 0) cart.items[idx].qty = Number(qty);
-            else cart.items.push({ product: productId, qty: Number(qty) });
+            else cart.items.push({ product: productId, qty: Number(qty), size });
         }
         cart.updatedAt = new Date();
         await cart.save();
@@ -60,10 +62,10 @@ const setItemQty = async (email, productId, qty) => {
     }
 }
 
-const removeItem = async (email, productId) => {
+const removeItem = async (email, productId, size = null) => {
     try {
         const cart = await getCartByEmail(email);
-        const idx = cart.items.findIndex(i => i.product.toString() === productId.toString());
+        const idx = cart.items.findIndex(i => getItemProductId(i) === productId.toString() && String(i.size || '') === String(size || ''));
         if (idx >= 0) cart.items.splice(idx, 1);
         cart.updatedAt = new Date();
         await cart.save();

@@ -4,6 +4,7 @@ import {
     SearchOutlined,
     SettingOutlined,
     ShoppingCartOutlined,
+    ShoppingOutlined,
     UsergroupAddOutlined,
 } from '@ant-design/icons';
 import { Col, Menu, Row } from 'antd';
@@ -37,6 +38,11 @@ const Header = () => {
             key: 'cart',
             icon: <ShoppingCartOutlined />,
         },
+        ...(auth.isAuthenticated ? [{
+            label: <Link to="/orders">Đơn hàng</Link>,
+            key: 'orders',
+            icon: <ShoppingOutlined />,
+        }] : []),
         ...(auth.isAuthenticated ? [{
             label: <Link to="/user">Users</Link>,
             key: 'user',

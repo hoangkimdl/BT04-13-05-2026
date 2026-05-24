@@ -141,7 +141,7 @@ const ProductDetail = () => {
             return;
         }
 
-        const result = await axios.post('/v1/api/cart/items', { productId, qty });
+        const result = await axios.post('/v1/api/cart/items', { productId, qty, size: selectedSize });
         if (result?.EC === 0) {
             message.success('Đã thêm vào giỏ hàng');
             if (goToCart) navigate('/cart');
