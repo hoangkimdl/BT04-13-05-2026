@@ -2,6 +2,7 @@ require("dotenv").config();
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { sendPasswordResetCode } = require("./emailService");
 
 const saltRounds = 10;
 const RESET_CODE_TTL_MS = 10 * 60 * 1000;
@@ -90,16 +91,24 @@ const forgotPasswordService = async (email) => {
         }
 
         const code = String(Math.floor(100000 + Math.random() * 900000));
+
+        try {
+            await sendPasswordResetCode(email, code);
+        } catch (mailError) {
+            console.error("Gửi email thất bại:", mailError.message);
+            return {
+                EC: 2,
+                EM: mailError.message || "Không thể gửi email. Vui lòng kiểm tra cấu hình Gmail trong BackEnd/.env"
+            };
+        }
+
         user.resetCode = code;
         user.resetCodeExpireAt = new Date(Date.now() + RESET_CODE_TTL_MS);
         await user.save();
 
-        // Demo flow: print OTP in backend terminal until mail provider is integrated.
-        console.log(`>> RESET CODE for ${email}: ${code} (valid 10 minutes)`);
-
         return {
             EC: 0,
-            EM: "Mã xác thực đã được gửi. Vui lòng kiểm tra email hoặc terminal backend (demo)."
+            EM: "Mã xác thực đã được gửi đến email của bạn. Vui lòng kiểm tra hộp thư (cả mục Thư rác)."
         };
     } catch (error) {
         console.log(error);

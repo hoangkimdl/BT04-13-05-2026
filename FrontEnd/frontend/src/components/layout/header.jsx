@@ -5,7 +5,6 @@ import {
     SettingOutlined,
     ShoppingCartOutlined,
     ShoppingOutlined,
-    UsergroupAddOutlined,
 } from '@ant-design/icons';
 import { Col, Menu, Row } from 'antd';
 import { useContext, useState } from 'react';
@@ -42,11 +41,6 @@ const Header = () => {
             label: <Link to="/orders">Đơn hàng</Link>,
             key: 'orders',
             icon: <ShoppingOutlined />,
-        }] : []),
-        ...(auth.isAuthenticated ? [{
-            label: <Link to="/user">Users</Link>,
-            key: 'user',
-            icon: <UsergroupAddOutlined />,
         }] : []),
         {
             label: auth.isAuthenticated ? `Xin chào ${auth?.user?.name ?? auth?.user?.email ?? ''}` : 'Tài khoản',
