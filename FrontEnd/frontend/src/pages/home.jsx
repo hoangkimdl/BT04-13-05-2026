@@ -8,7 +8,7 @@ import {
     TrophyOutlined,
 } from '@ant-design/icons';
 import { Button, Card, Col, Row, Skeleton, Tag, Typography } from 'antd';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
     brands,
@@ -22,6 +22,7 @@ import axios from '../util/axios.customize';
 
 const { Title } = Typography;
 const TOP_PAGE_SIZE = 4;
+const TOP_TOTAL = 10;
 
 const ProductCard = ({ p, metric }) => (
     <Link className="product-card-link" to={`/product/${getProductKey(p)}`}>
@@ -84,57 +85,68 @@ const ProductSection = ({ title, icon, products, brand }) => (
 );
 
 const TopProductPager = ({ title, icon, endpoint, fallbackItems, metric }) => {
+    const cacheRef = useRef({});
     const [items, setItems] = useState(fallbackItems.slice(0, TOP_PAGE_SIZE));
     const [page, setPage] = useState(1);
-    const [total, setTotal] = useState(Math.min(fallbackItems.length, 10));
+    const [totalPages, setTotalPages] = useState(Math.ceil(TOP_TOTAL / TOP_PAGE_SIZE));
     const [loading, setLoading] = useState(false);
-    const [prefetchedPages, setPrefetchedPages] = useState({});
-    const totalPages = Math.max(Math.ceil(total / TOP_PAGE_SIZE), 1);
+
+    const loadPage = useCallback(async (targetPage, options = {}) => {
+        const { silent = false } = options;
+        if (!silent) setLoading(true);
+
+        try {
+            const cached = cacheRef.current[targetPage];
+            if (cached) {
+                setItems(cached.items || []);
+                setTotalPages(cached.totalPages || Math.ceil(TOP_TOTAL / TOP_PAGE_SIZE));
+                return;
+            }
+
+            const result = await axios.get(`${endpoint}?page=${targetPage}&limit=${TOP_PAGE_SIZE}`);
+            const nextItems = result?.items?.length
+                ? result.items
+                : fallbackItems.slice((targetPage - 1) * TOP_PAGE_SIZE, targetPage * TOP_PAGE_SIZE);
+
+            const resolvedTotalPages = result?.totalPages || Math.ceil((result?.total || TOP_TOTAL) / TOP_PAGE_SIZE);
+            const payload = { items: nextItems, totalPages: resolvedTotalPages };
+
+            cacheRef.current[targetPage] = payload;
+            setItems(nextItems);
+            setTotalPages(resolvedTotalPages);
+
+            const nextPage = targetPage + 1;
+            if (nextPage <= resolvedTotalPages && !cacheRef.current[nextPage]) {
+                axios.get(`${endpoint}?page=${nextPage}&limit=${TOP_PAGE_SIZE}`)
+                    .then((nextResult) => {
+                        cacheRef.current[nextPage] = {
+                            items: nextResult?.items || fallbackItems.slice((nextPage - 1) * TOP_PAGE_SIZE, nextPage * TOP_PAGE_SIZE),
+                            totalPages: nextResult?.totalPages || resolvedTotalPages
+                        };
+                    })
+                    .catch(() => {});
+            }
+        } catch (error) {
+            console.error(error);
+            const start = (targetPage - 1) * TOP_PAGE_SIZE;
+            setItems(fallbackItems.slice(start, start + TOP_PAGE_SIZE));
+            setTotalPages(Math.ceil(Math.min(fallbackItems.length, TOP_TOTAL) / TOP_PAGE_SIZE));
+        } finally {
+            if (!silent) setLoading(false);
+        }
+    }, [endpoint, fallbackItems]);
 
     useEffect(() => {
-        const loadPage = async () => {
-            setLoading(true);
-            try {
-                const cached = prefetchedPages[page];
-                if (cached) {
-                    setItems(cached.items || []);
-                    setTotal(cached.total ?? 0);
-                    setLoading(false);
-                    return;
-                }
-
-                const result = await axios.get(`${endpoint}?page=${page}&limit=${TOP_PAGE_SIZE}`);
-                setItems(result?.items || []);
-                setTotal(result?.total ?? 0);
-                setPrefetchedPages((current) => ({ ...current, [page]: result }));
-
-                const nextPage = page + 1;
-                if (nextPage <= Math.max(Math.ceil((result?.total || 0) / TOP_PAGE_SIZE), 1) && !prefetchedPages[nextPage]) {
-                    axios.get(`${endpoint}?page=${nextPage}&limit=${TOP_PAGE_SIZE}`)
-                        .then((nextResult) => {
-                            setPrefetchedPages((current) => ({ ...current, [nextPage]: nextResult }));
-                        })
-                        .catch(() => {});
-                }
-            } catch (error) {
-                console.error(error);
-                const start = (page - 1) * TOP_PAGE_SIZE;
-                setItems(fallbackItems.slice(start, start + TOP_PAGE_SIZE));
-                setTotal(Math.min(fallbackItems.length, 10));
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        loadPage();
-    }, [endpoint, fallbackItems, page, prefetchedPages]);
+        loadPage(page);
+    }, [page, loadPage]);
 
     return (
         <section className="top-products-section">
             <div className="section-heading top-products-heading">
                 <Title level={3}>{icon}{title}</Title>
-                <div className="horizontal-pager">
+                <div className="horizontal-pager" role="navigation" aria-label={`Phân trang ${title}`}>
                     <Button
+                        className="horizontal-pager__btn"
                         aria-label="Trang trước"
                         icon={<LeftOutlined />}
                         disabled={page === 1 || loading}
@@ -145,6 +157,7 @@ const TopProductPager = ({ title, icon, endpoint, fallbackItems, metric }) => {
                         <span>/ {totalPages}</span>
                     </div>
                     <Button
+                        className="horizontal-pager__btn"
                         aria-label="Trang sau"
                         icon={<RightOutlined />}
                         disabled={page >= totalPages || loading}
@@ -153,11 +166,15 @@ const TopProductPager = ({ title, icon, endpoint, fallbackItems, metric }) => {
                 </div>
             </div>
             <div className={`top-products-track${loading ? ' is-loading' : ''}`}>
-                {loading && items.length === 0 ? Array.from({ length: TOP_PAGE_SIZE }).map((_, index) => (
-                    <div key={`skeleton-${index}`} className="top-product-skeleton"><Skeleton active paragraph={{ rows: 4 }} /></div>
-                )) : items.map((product) => (
-                    <ProductCard key={getProductKey(product)} p={product} metric={metric} />
-                ))}
+                {loading && items.length === 0
+                    ? Array.from({ length: TOP_PAGE_SIZE }).map((_, index) => (
+                        <div key={`skeleton-${index}`} className="top-product-skeleton">
+                            <Skeleton active paragraph={{ rows: 4 }} />
+                        </div>
+                    ))
+                    : items.map((product) => (
+                        <ProductCard key={getProductKey(product)} p={product} metric={metric} />
+                    ))}
             </div>
         </section>
     );
@@ -176,21 +193,20 @@ const ArticlePreview = ({ article }) => (
 
 const HomePage = () => {
     const [products, setProducts] = useState(fallbackProducts);
-    const [bestSellers, setBestSellers] = useState([...fallbackProducts].sort((a, b) => b.sold - a.sold).slice(0, 10));
-    const [mostViewed, setMostViewed] = useState([...fallbackProducts].sort((a, b) => (b.views || b.sold) - (a.views || a.sold)).slice(0, 10));
+    const bestSellersFallback = useMemo(
+        () => [...fallbackProducts].sort((a, b) => b.sold - a.sold).slice(0, TOP_TOTAL),
+        []
+    );
+    const mostViewedFallback = useMemo(
+        () => [...fallbackProducts].sort((a, b) => (b.views || b.sold) - (a.views || a.sold)).slice(0, TOP_TOTAL),
+        []
+    );
 
     useEffect(() => {
         const loadHomeData = async () => {
             try {
-                const [productResult, bestsellerResult, mostViewedResult] = await Promise.all([
-                    axios.get('/v1/api/products?limit=100'),
-                    axios.get('/v1/api/products/top/bestsellers?limit=10'),
-                    axios.get('/v1/api/products/top/most-viewed?limit=10'),
-                ]);
-
+                const productResult = await axios.get('/v1/api/products?limit=100');
                 if (productResult?.items?.length) setProducts(productResult.items);
-                if (bestsellerResult?.items?.length) setBestSellers(bestsellerResult.items);
-                if (mostViewedResult?.items?.length) setMostViewed(mostViewedResult.items);
             } catch (error) {
                 console.error(error);
                 setProducts(fallbackProducts);
@@ -228,14 +244,14 @@ const HomePage = () => {
                 title="Top 10 sản phẩm bán chạy nhất"
                 icon={<TrophyOutlined />}
                 endpoint="/v1/api/products/top/bestsellers"
-                fallbackItems={bestSellers}
+                fallbackItems={bestSellersFallback}
                 metric="sold"
             />
             <TopProductPager
                 title="Top 10 sản phẩm xem nhiều nhất"
                 icon={<EyeOutlined />}
                 endpoint="/v1/api/products/top/most-viewed"
-                fallbackItems={mostViewed}
+                fallbackItems={mostViewedFallback}
                 metric="views"
             />
 

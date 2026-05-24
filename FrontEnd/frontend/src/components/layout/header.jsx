@@ -1,6 +1,7 @@
 import {
     FileTextOutlined,
     HomeOutlined,
+    LogoutOutlined,
     SearchOutlined,
     SettingOutlined,
     ShoppingCartOutlined,
@@ -13,8 +14,14 @@ import { AuthContext } from '../context/auth.context';
 
 const Header = () => {
     const navigate = useNavigate();
-    const { auth, setAuth } = useContext(AuthContext);
+    const { auth, logout } = useContext(AuthContext);
     const [current, setCurrent] = useState('home');
+
+    const handleLogout = () => {
+        logout();
+        setCurrent('home');
+        navigate('/', { replace: true });
+    };
 
     const items = [
         {
@@ -49,22 +56,8 @@ const Header = () => {
             children: auth.isAuthenticated ? [
                 {
                     label: (
-                        <span onClick={() => {
-                            localStorage.removeItem('access_token');
-                            localStorage.removeItem('user_name');
-                            localStorage.removeItem('user_email');
-                            setCurrent('home');
-                            setAuth({
-                                isAuthenticated: false,
-                                user: {
-                                    email: '',
-                                    name: '',
-                                },
-                            });
-                            navigate('/');
-                        }}
-                        >
-                            Đăng xuất
+                        <span className="logout-menu-item" onClick={handleLogout}>
+                            <LogoutOutlined /> Đăng xuất
                         </span>
                     ),
                     key: 'logout',

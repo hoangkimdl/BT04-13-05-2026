@@ -106,7 +106,9 @@ const getTopProductsService = async (query, sortField) => {
 
         if (skip >= topLimit) {
             const total = await Product.countDocuments(filters);
-            return { items: [], total: Math.min(total, topLimit), page, limit, hasMore: false };
+            const cappedTotal = Math.min(total, topLimit);
+            const totalPages = Math.max(Math.ceil(cappedTotal / limit), 1);
+            return { items: [], total: cappedTotal, page, limit, totalPages, hasMore: false };
         }
 
         const effectiveLimit = Math.min(limit, topLimit - skip);
@@ -117,10 +119,18 @@ const getTopProductsService = async (query, sortField) => {
         ]);
 
         const cappedTotal = Math.min(total, topLimit);
-        return { items, total: cappedTotal, page, limit, hasMore: page * limit < cappedTotal };
+        const totalPages = Math.max(Math.ceil(cappedTotal / limit), 1);
+        return {
+            items,
+            total: cappedTotal,
+            page,
+            limit,
+            totalPages,
+            hasMore: page < totalPages
+        };
     } catch (error) {
         console.error(error);
-        return { items: [], total: 0, page: 1, limit: 10, hasMore: false };
+        return { items: [], total: 0, page: 1, limit: 10, totalPages: 1, hasMore: false };
     }
 }
 
