@@ -88,7 +88,7 @@ const SearchPage = () => {
                 <div>
                     <span>{items.length} sản phẩm</span>
                     <Title level={2}>Tìm kiếm sản phẩm</Title>
-                    <p>Lọc nhanh toàn bộ ảnh Kawasaki, Yonex, Lining và Victor từ dữ liệu MongoDB.</p>
+                    <p>Lọc nhanh toàn bộ ảnh Kawasaki, Yonex, Lining và Victor.</p>
                 </div>
             </div>
 

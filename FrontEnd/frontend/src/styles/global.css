@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -8,7 +10,7 @@ body {
     min-width: 320px;
     color: #111827;
     background: #f3f6fb;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Inter, 'Helvetica Neue', Arial, sans-serif;
 }
 
 a {
@@ -1258,6 +1260,78 @@ img {
 .status-history h2 {
     margin: 0;
     color: #071527;
+    font-family: Inter, 'Helvetica Neue', Arial, sans-serif;
+    font-weight: 900;
+    font-size: clamp(20px, 3vw, 28px);
+    letter-spacing: 0.01em;
+}
+
+/* Back link on order/detail pages */
+.order-detail-page .article-back {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #0f63c9;
+    font-weight: 900;
+    font-size: 18px;
+    margin: 8px auto 18px;
+    width: max-content;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(15,99,201,0.06);
+    text-decoration: none;
+}
+
+.order-detail-page .article-back:hover {
+    background: rgba(15,99,201,0.12);
+    transform: translateY(-1px);
+}
+
+/* Section heading links for orders/cart pages */
+.orders-page .section-heading a,
+.cart-page .section-heading a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #0f63c9;
+    font-weight: 900;
+    font-size: 15px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background 0.12s ease, transform 0.08s ease;
+}
+
+.orders-page .section-heading a:hover,
+.cart-page .section-heading a:hover {
+    background: rgba(15,99,201,0.06);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
+/* Cart checkout total styling (more prominent) */
+.cart-page .checkout-panel .checkout-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #ffffff, #f7fbff);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 8px 22px rgba(15,39,72,0.06);
+}
+
+.cart-page .checkout-panel .checkout-total span {
+    color: #52647a;
+    font-weight: 800;
+    font-size: 14px;
+    text-transform: uppercase;
+}
+
+.cart-page .checkout-panel .checkout-total strong {
+    color: #e60012;
+    font-size: 22px;
+    font-weight: 900;
+    font-family: Inter, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .order-list {
