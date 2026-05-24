@@ -1,4 +1,12 @@
-import { HomeOutlined, SearchOutlined, SettingOutlined, ShoppingCartOutlined, UsergroupAddOutlined } from '@ant-design/icons';
+import {
+    FileTextOutlined,
+    HomeOutlined,
+    LogoutOutlined,
+    SearchOutlined,
+    SettingOutlined,
+    ShoppingCartOutlined,
+    ShoppingOutlined,
+} from '@ant-design/icons';
 import { Col, Menu, Row } from 'antd';
 import { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -6,8 +14,14 @@ import { AuthContext } from '../context/auth.context';
 
 const Header = () => {
     const navigate = useNavigate();
-    const { auth, setAuth } = useContext(AuthContext);
+    const { auth, logout } = useContext(AuthContext);
     const [current, setCurrent] = useState('home');
+
+    const handleLogout = () => {
+        logout();
+        setCurrent('home');
+        navigate('/', { replace: true });
+    };
 
     const items = [
         {
@@ -21,14 +35,19 @@ const Header = () => {
             icon: <SearchOutlined />,
         },
         {
+            label: <Link to="/tin-tuc">Tin tức</Link>,
+            key: 'articles',
+            icon: <FileTextOutlined />,
+        },
+        {
             label: <Link to="/cart">Giỏ hàng</Link>,
             key: 'cart',
             icon: <ShoppingCartOutlined />,
         },
         ...(auth.isAuthenticated ? [{
-            label: <Link to="/user">Users</Link>,
-            key: 'user',
-            icon: <UsergroupAddOutlined />,
+            label: <Link to="/orders">Đơn hàng</Link>,
+            key: 'orders',
+            icon: <ShoppingOutlined />,
         }] : []),
         {
             label: auth.isAuthenticated ? `Xin chào ${auth?.user?.name ?? auth?.user?.email ?? ''}` : 'Tài khoản',
@@ -37,22 +56,8 @@ const Header = () => {
             children: auth.isAuthenticated ? [
                 {
                     label: (
-                        <span onClick={() => {
-                            localStorage.removeItem('access_token');
-                            localStorage.removeItem('user_name');
-                            localStorage.removeItem('user_email');
-                            setCurrent('home');
-                            setAuth({
-                                isAuthenticated: false,
-                                user: {
-                                    email: '',
-                                    name: '',
-                                },
-                            });
-                            navigate('/');
-                        }}
-                        >
-                            Đăng xuất
+                        <span className="logout-menu-item" onClick={handleLogout}>
+                            <LogoutOutlined /> Đăng xuất
                         </span>
                     ),
                     key: 'logout',

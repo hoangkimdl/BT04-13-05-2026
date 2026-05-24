@@ -1,102 +1,107 @@
-import { useContext } from 'react';
-import { Button, Col, Divider, Form, Input, notification, Row } from 'antd';
-import { loginApi } from '../util/api';
+import { useContext, useState } from 'react';
+import { Button, Form, Input, notification } from 'antd';
+import { LockOutlined, LoginOutlined, MailOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../components/context/auth.context';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import AuthShell from '../components/auth/AuthShell';
+import { loginApi } from '../util/api';
 
 const LoginPage = () => {
     const navigate = useNavigate();
     const { setAuth } = useContext(AuthContext);
+    const [submitting, setSubmitting] = useState(false);
 
     const onFinish = async (values) => {
         const { email, password } = values;
+        setSubmitting(true);
 
-        const res = await loginApi(email, password);
+        try {
+            const res = await loginApi(email, password);
 
-        if (res && res.EC === 0) {
-            localStorage.setItem("access_token", res.access_token)
-            localStorage.setItem("user_name", res?.user?.name ?? "");
-            localStorage.setItem("user_email", res?.user?.email ?? "");
-            notification.success({
-                message: "LOGIN USER",
-                description: "Success"
-            });
-            setAuth({
-                isAuthenticated: true,
-                user: {
-                    email: res?.user?.email ?? "",
-                    name: res?.user?.name ?? ""
-                }
-            })
-            navigate("/");
+            if (res && res.EC === 0) {
+                localStorage.setItem('access_token', res.access_token);
+                localStorage.setItem('user_name', res?.user?.name ?? '');
+                localStorage.setItem('user_email', res?.user?.email ?? '');
 
-        } else {
-            notification.error({
-                message: "LOGIN USER",
-                description: res?.EM ?? "error"
-            })
+                setAuth({
+                    isAuthenticated: true,
+                    user: {
+                        email: res?.user?.email ?? '',
+                        name: res?.user?.name ?? ''
+                    }
+                });
+
+                notification.success({
+                    message: 'Đăng nhập',
+                    description: 'Đăng nhập thành công.'
+                });
+                navigate('/');
+            } else {
+                notification.error({
+                    message: 'Đăng nhập',
+                    description: res?.EM ?? 'Email hoặc mật khẩu không hợp lệ.'
+                });
+            }
+        } finally {
+            setSubmitting(false);
         }
     };
 
     return (
-        <Row justify={"center"} style={{ marginTop: "30px" }}>
-            <Col xs={24} md={16} lg={8}>
-                <fieldset style={{
-                    padding: "15px",
-                    margin: "5px",
-                    border: "1px solid #ccc",
-                    borderRadius: "5px"
-                }}>
-                    <legend>Đăng Nhập</legend>
-                    <Form
-                        name="basic"
-                        onFinish={onFinish}
-                        autoComplete="off"
-                        layout='vertical'
-                    >
-                        <Form.Item
-                            label="Email"
-                            name="email"
-                            rules={[
-                                {
-                                    required: true,
-                                    message: 'Please input your email!',
-                                },
-                            ]}
-                        >
-                            <Input />
-                        </Form.Item>
+        <AuthShell
+            logoSrc="/logo2.jpg"
+            logoAlt="Speedstride Sports login"
+            title="Đăng nhập"
+            subtitle="Truy cập tài khoản để tiếp tục mua sắm."
+            backTo="/"
+            backLabel="Quay lại trang chủ"
+            footer={<>Chưa có tài khoản? <Link to="/register">Đăng ký tại đây</Link></>}
+        >
+            <Form
+                className="auth-form"
+                name="login"
+                onFinish={onFinish}
+                autoComplete="off"
+                layout="vertical"
+            >
+                <Form.Item
+                    label="Email"
+                    name="email"
+                    rules={[
+                        { required: true, message: 'Vui lòng nhập email!' },
+                        { type: 'email', message: 'Email không hợp lệ!' }
+                    ]}
+                >
+                    <Input prefix={<MailOutlined />} placeholder="email@example.com" size="large" />
+                </Form.Item>
 
-                        <Form.Item
-                            label="Password"
-                            name="password"
-                            rules={[
-                                {
-                                    required: true,
-                                    message: 'Please input your password!',
-                                },
-                            ]}
-                        >
-                            <Input.Password />
-                        </Form.Item>
+                <Form.Item
+                    label="Mật khẩu"
+                    name="password"
+                    rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
+                >
+                    <Input.Password prefix={<LockOutlined />} placeholder="Nhập mật khẩu" size="large" />
+                </Form.Item>
 
-                        <Form.Item
-                        >
-                            <Button type="primary" htmlType="submit">
-                                Login
-                            </Button>
-                        </Form.Item>
-                    </Form>
-                    <Link to={"/"}><ArrowLeftOutlined /> Quay lại trang chủ</Link>
-                    <Divider />
-                    <div style={{ textAlign: "center" }}>
-                        Chưa có tài khoản? <Link to={"/register"}>Đăng ký tại đây</Link>
-                    </div>
-                </fieldset>
-            </Col>
-        </Row>
-    )
-}
+                <div className="auth-form__meta">
+                    <span />
+                    <Link to="/forgot-password">Quên mật khẩu?</Link>
+                </div>
+
+                <Button
+                    className="auth-submit"
+                    type="primary"
+                    htmlType="submit"
+                    loading={submitting}
+                    icon={<LoginOutlined />}
+                    size="large"
+                    block
+                >
+                    Đăng nhập
+                </Button>
+            </Form>
+        </AuthShell>
+    );
+};
 
 export default LoginPage;

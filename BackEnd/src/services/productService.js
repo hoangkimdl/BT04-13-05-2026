@@ -1,4 +1,11 @@
 const Product = require('../models/product');
+const mongoose = require('mongoose');
+
+const getPagination = (query, defaultLimit = 12, maxLimit = 100) => {
+    const page = Math.max(Number(query.page || 1), 1);
+    const limit = Math.min(Math.max(Number(query.limit || defaultLimit), 1), maxLimit);
+    return { page, limit, skip: (page - 1) * limit };
+};
 
 const createProductService = async (payload) => {
     try {
@@ -12,11 +19,18 @@ const createProductService = async (payload) => {
 
 const getProductsService = async (query) => {
     try {
-        const page = Number(query.page || 1);
-        const limit = Number(query.limit || 12);
+        const { page, limit, skip } = getPagination(query);
         const filters = {};
-        if (query.name) filters.name = { $regex: query.name, $options: 'i' };
+        const keyword = query.name || query.q;
+        if (keyword) {
+            filters.$or = [
+                { name: { $regex: keyword, $options: 'i' } },
+                { brand: { $regex: keyword, $options: 'i' } },
+                { category: { $regex: keyword, $options: 'i' } }
+            ];
+        }
         if (query.category) filters.category = query.category;
+        if (query.brand) filters.brand = query.brand;
         if (query.minPrice) filters.price = { ...filters.price, $gte: Number(query.minPrice) };
         if (query.maxPrice) filters.price = { ...filters.price, $lte: Number(query.maxPrice) };
         if (query.isNew) filters.isNew = query.isNew === 'true';
@@ -27,26 +41,96 @@ const getProductsService = async (query) => {
         if (query.sort === 'price_desc') sortObj = { price: -1 };
         if (query.sort === 'bestseller') sortObj = { sold: -1 };
 
-        const skip = (page - 1) * limit;
-
         const [items, total] = await Promise.all([
             Product.find(filters).sort(sortObj).skip(skip).limit(limit),
             Product.countDocuments(filters)
         ]);
 
-        return { items, total, page, limit };
+        return { items, total, page, limit, hasMore: page * limit < total };
     } catch (error) {
         console.error(error);
         return { items: [], total: 0, page: 1, limit: 12 };
     }
 }
 
-const getProductById = async (id) => {
+const getProductById = async (id, options = {}) => {
     try {
-        return await Product.findById(id);
+        const update = options.incrementViews ? { $inc: { views: 1 } } : null;
+        const queryOptions = { new: true };
+
+        if (mongoose.Types.ObjectId.isValid(id)) {
+            if (update) return await Product.findByIdAndUpdate(id, update, queryOptions);
+            return await Product.findById(id);
+        }
+
+        if (update) return await Product.findOneAndUpdate({ slug: id }, update, queryOptions);
+        return await Product.findOne({ slug: id });
     } catch (error) {
         console.error(error);
         return null;
+    }
+}
+
+const getCategoriesService = async () => {
+    try {
+        const categories = await Product.aggregate([
+            { $match: { category: { $exists: true, $ne: '' } } },
+            {
+                $group: {
+                    _id: '$category',
+                    count: { $sum: 1 },
+                    thumbnail: { $first: { $ifNull: ['$thumbnail', { $arrayElemAt: ['$images', 0] }] } }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        return categories.map((item) => ({
+            name: item._id,
+            count: item.count,
+            thumbnail: item.thumbnail || '/logo.jpg'
+        }));
+    } catch (error) {
+        console.error(error);
+        return [];
+    }
+}
+
+const getTopProductsService = async (query, sortField) => {
+    try {
+        const topLimit = 10;
+        const { page, limit, skip } = getPagination(query, 4, 10);
+        const filters = {};
+        if (query.category) filters.category = query.category;
+        if (query.brand) filters.brand = query.brand;
+
+        if (skip >= topLimit) {
+            const total = await Product.countDocuments(filters);
+            const cappedTotal = Math.min(total, topLimit);
+            const totalPages = Math.max(Math.ceil(cappedTotal / limit), 1);
+            return { items: [], total: cappedTotal, page, limit, totalPages, hasMore: false };
+        }
+
+        const effectiveLimit = Math.min(limit, topLimit - skip);
+        const sortObj = { [sortField]: -1, createdAt: -1 };
+        const [items, total] = await Promise.all([
+            Product.find(filters).sort(sortObj).skip(skip).limit(effectiveLimit),
+            Product.countDocuments(filters)
+        ]);
+
+        const cappedTotal = Math.min(total, topLimit);
+        const totalPages = Math.max(Math.ceil(cappedTotal / limit), 1);
+        return {
+            items,
+            total: cappedTotal,
+            page,
+            limit,
+            totalPages,
+            hasMore: page < totalPages
+        };
+    } catch (error) {
+        console.error(error);
+        return { items: [], total: 0, page: 1, limit: 10, totalPages: 1, hasMore: false };
     }
 }
 
@@ -101,6 +185,8 @@ module.exports = {
     createProductService,
     getProductsService,
     getProductById,
+    getCategoriesService,
+    getTopProductsService,
     getNewest,
     getBestsellers,
     getPromotions,
