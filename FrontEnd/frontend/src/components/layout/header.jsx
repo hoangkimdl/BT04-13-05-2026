@@ -55,6 +55,10 @@ const Header = () => {
             icon: <SettingOutlined />,
             children: auth.isAuthenticated ? [
                 {
+                    label: <Link to="/profile">Hồ sơ cá nhân</Link>,
+                    key: 'profile',
+                },
+                {
                     label: (
                         <span className="logout-menu-item" onClick={handleLogout}>
                             <LogoutOutlined /> Đăng xuất

@@ -1,7 +1,8 @@
 import { DeleteOutlined, MinusOutlined, PlusOutlined, ShoppingOutlined } from '@ant-design/icons';
 import { Button, Empty, Form, Input, InputNumber, List, Radio, Spin, message } from 'antd';
-import { useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../components/context/auth.context';
 import { formatPrice } from '../data/products';
 import axios from '../util/axios.customize';
 
@@ -9,6 +10,7 @@ const getProductId = (item) => item.product?._id || item.product?.id || item.pro
 
 const CartPage = () => {
     const navigate = useNavigate();
+    const { auth } = useContext(AuthContext);
     const [form] = Form.useForm();
     const [cart, setCart] = useState({ items: [] });
     const [loading, setLoading] = useState(true);
@@ -34,6 +36,15 @@ const CartPage = () => {
             else setLoading(false);
         });
     }, [isAuthenticated]);
+
+    useEffect(() => {
+        if (!auth.isAuthenticated) return;
+        form.setFieldsValue({
+            customerName: auth.user?.name || '',
+            phone: auth.user?.phone || '',
+            address: auth.user?.address || ''
+        });
+    }, [auth.isAuthenticated, auth.user?.name, auth.user?.phone, auth.user?.address, form]);
 
     const items = useMemo(() => cart?.items || [], [cart]);
     const total = useMemo(

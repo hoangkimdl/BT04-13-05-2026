@@ -4,6 +4,8 @@ const {
     handleLogin,
     getUser,
     getAccount,
+    updateAccount,
+    changePassword,
     forgotPassword,
     verifyResetCode,
     resetPassword
@@ -35,7 +37,9 @@ routerAPI.post('/forgot-password', forgotPassword);
 routerAPI.post('/verify-reset-code', verifyResetCode);
 routerAPI.post('/reset-password', resetPassword);
 routerAPI.get("/user", auth, getUser);
-routerAPI.get("/account", delay, getAccount);
+routerAPI.get("/account", auth, getAccount);
+routerAPI.put("/account", auth, updateAccount);
+routerAPI.put("/account/password", auth, changePassword);
 // Cart APIs (require auth)
 routerAPI.get('/cart', auth, getCart);
 routerAPI.post('/cart/items', auth, addCartItem); // body: { productId, qty }

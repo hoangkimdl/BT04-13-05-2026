@@ -38,6 +38,29 @@ const resetPasswordApi = (email, code, newPassword) => {
     return axios.post(URL_API, { email, code, newPassword });
 }
 
+const getAccountApi = () => {
+    const URL_API = "/v1/api/account";
+    return axios.get(URL_API);
+}
+
+const updateAccountApi = (data) => {
+    const URL_API = "/v1/api/account";
+    return axios.put(URL_API, data);
+}
+
+const changePasswordApi = (currentPassword, newPassword) => {
+    const URL_API = "/v1/api/account/password";
+    return axios.put(URL_API, { currentPassword, newPassword });
+}
+
 export {
-    createUserApi, loginApi, getUserApi, forgotPasswordApi, verifyResetCodeApi, resetPasswordApi
+    createUserApi,
+    loginApi,
+    getUserApi,
+    forgotPasswordApi,
+    verifyResetCodeApi,
+    resetPasswordApi,
+    getAccountApi,
+    updateAccountApi,
+    changePasswordApi
 }

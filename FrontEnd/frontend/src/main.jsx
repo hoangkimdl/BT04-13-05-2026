@@ -34,6 +34,7 @@ import ArticleDetailPage from './pages/articleDetail.jsx';
 import CategoryProductsPage from './pages/categoryProducts.jsx';
 import OrdersPage from './pages/orders.jsx';
 import OrderDetailPage from './pages/orderDetail.jsx';
+import ProfilePage from './pages/profile.jsx';
 import { AuthWrapper } from './components/context/auth.context.jsx';
 
 const router = createBrowserRouter([
@@ -72,6 +73,10 @@ const router = createBrowserRouter([
                 {
                     path: "orders/:id",
                     element: <OrderDetailPage />
+                },
+                {
+                    path: "profile",
+                    element: <ProfilePage />
                 },
                 {
                     path: "tin-tuc",

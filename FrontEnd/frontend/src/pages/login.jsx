@@ -3,6 +3,7 @@ import { Button, Form, Input, notification } from 'antd';
 import { LockOutlined, LoginOutlined, MailOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../components/context/auth.context';
+import { persistUserSession } from '../components/context/auth.context';
 import AuthShell from '../components/auth/AuthShell';
 import { loginApi } from '../util/api';
 
@@ -19,15 +20,16 @@ const LoginPage = () => {
             const res = await loginApi(email, password);
 
             if (res && res.EC === 0) {
-                localStorage.setItem('access_token', res.access_token);
-                localStorage.setItem('user_name', res?.user?.name ?? '');
-                localStorage.setItem('user_email', res?.user?.email ?? '');
+                persistUserSession(res.user, res.access_token);
 
                 setAuth({
                     isAuthenticated: true,
                     user: {
                         email: res?.user?.email ?? '',
-                        name: res?.user?.name ?? ''
+                        name: res?.user?.name ?? '',
+                        phone: res?.user?.phone ?? '',
+                        address: res?.user?.address ?? '',
+                        role: res?.user?.role ?? ''
                     }
                 });
 

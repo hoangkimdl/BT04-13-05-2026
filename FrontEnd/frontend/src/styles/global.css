@@ -1255,6 +1255,34 @@ img {
     margin-top: 18px;
 }
 
+.profile-page .section-heading h2,
+.profile-page .section-heading .ant-typography {
+    margin: 0;
+}
+
+.profile-page .profile-card {
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(15, 39, 72, 0.08);
+}
+
+.profile-page .section-heading a {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #0f63c9;
+    font-weight: 900;
+    font-size: 15px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    transition: background 0.12s ease, transform 0.08s ease;
+}
+
+.profile-page .section-heading a:hover {
+    background: rgba(15, 99, 201, 0.06);
+    transform: translateY(-1px);
+    text-decoration: none;
+}
+
 .orders-page .section-heading h2,
 .order-detail-heading h1,
 .status-history h2 {
